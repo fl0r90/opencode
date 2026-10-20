@@ -73,7 +73,7 @@ build_and_install_from_source() {
     fi
   fi
 
-  WORK_DIR="${ OPENCODE_BUILD_DIR:-/tmp/opencode-desktop-build }"
+  WORK_DIR="${OPENCODE_BUILD_DIR:-/tmp/opencode-desktop-build}"
   rm -rf "${WORK_DIR}"
   git clone --depth 1 -b "${BRANCH}" "https://github.com/${REPO}.git" "${WORK_DIR}"
   cd "${WORK_DIR}"
@@ -107,10 +107,35 @@ build_and_install_from_source() {
 
   if [[ "${OS}" == "Linux" ]]; then
     bunx electron-builder --config electron-builder.config.ts --linux deb AppImage --publish never
-    DEB_FILE="$(ls dist/*.deb | head -n 1)"
-    echo "[4/4] Installing ${DEB_FILE}..."
-    sudo apt-get install -y "${DEB_FILE}" || (sudo dpkg -i "${DEB_FILE}" && sudo apt-get install -f -y)
-    echo "✅ OpenCode Desktop built & installed!"
+    DEB_FILE="$(ls dist/*.deb 2>/dev/null | head -n 1 || true)"
+    APPIMAGE_FILE="$(ls dist/*.AppImage 2>/dev/null | head -n 1 || true)"
+
+    if [[ -n "${DEB_FILE}" ]] && command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+      echo "[4/4] Installing ${DEB_FILE} via sudo..."
+      sudo apt-get install -y "${DEB_FILE}" || (sudo dpkg -i "${DEB_FILE}" && sudo apt-get install -f -y)
+      echo "✅ OpenCode Desktop installed system-wide!"
+    elif [[ -n "${APPIMAGE_FILE}" ]]; then
+      mkdir -p "${HOME}/.local/bin" "${HOME}/.local/share/applications" "${HOME}/.local/share/icons/hicolor/512x512/apps"
+      cp "${APPIMAGE_FILE}" "${HOME}/.local/bin/opencode-desktop"
+      chmod +x "${HOME}/.local/bin/opencode-desktop"
+      cp "${WORK_DIR}/packages/desktop/resources/icons/512x512.png" "${HOME}/.local/share/icons/hicolor/512x512/apps/ai.opencode.desktop.png" 2>/dev/null || true
+      cat << 'EOF' > "${HOME}/.local/share/applications/ai.opencode.desktop.desktop"
+[Desktop Entry]
+Name=OpenCode Desktop
+Comment=OpenCode Desktop with LM Studio Multi-Server Cluster Edition
+Exec=/home/cfp-90/.local/bin/opencode-desktop %U
+Terminal=false
+Type=Application
+Icon=ai.opencode.desktop
+StartupWMClass=ai.opencode.desktop
+Categories=Development;IDE;
+MimeType=x-scheme-handler/opencode;
+Keywords=opencode;ai;coding;lmstudio;agent;
+EOF
+      sed -i "s|/home/cfp-90|${HOME}|g" "${HOME}/.local/share/applications/ai.opencode.desktop.desktop"
+      update-desktop-database "${HOME}/.local/share/applications" 2>/dev/null || true
+      echo "✅ OpenCode Desktop installed in ~/.local/bin/opencode-desktop and added to your Application menu!"
+    fi
   elif [[ "${OS}" == "Darwin" ]]; then
     bunx electron-builder --config electron-builder.config.ts --mac zip --publish never
     echo "✅ OpenCode Desktop built in ${WORK_DIR}/packages/desktop/dist!"
