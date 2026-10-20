@@ -114,7 +114,11 @@ export class Info extends Schema.Class<Info>("Config.Info")({
 }) {}
 
 export const Patch = Schema.Struct({
-  shell: Schema.NullOr(Schema.String),
+  shell: Schema.NullOr(Schema.String).pipe(optional),
+  model: Schema.NullOr(ConfigModel.Selection).pipe(optional),
+  default_agent: Schema.NullOr(Schema.String).pipe(optional),
+  providers: Schema.Record(Schema.String, Schema.NullOr(ConfigProvider.Info)).pipe(optional),
+  agents: Schema.Record(Schema.String, Schema.NullOr(ConfigAgent.Info)).pipe(optional),
 }).annotate({ identifier: "Config.Patch" })
 export interface Patch extends Schema.Schema.Type<typeof Patch> {}
 

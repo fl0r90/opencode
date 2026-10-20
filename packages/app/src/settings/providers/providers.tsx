@@ -21,6 +21,7 @@ import { SettingsList } from "@/settings/list"
 import { activeProviderAccount, providerAccounts, type ProviderAccount } from "./accounts"
 import { AccountNameInput } from "./account-name"
 import { useProviderAccountActions } from "./account-actions"
+import { LMStudioClusterSection } from "./lmstudio-cluster"
 import "@/settings/settings.css"
 
 type ProviderSource = "env" | "api" | "account" | "config" | "custom"
@@ -402,6 +403,8 @@ export const SettingsProviders: Component<{
       </div>
 
       <div class="settings-tab-body settings-tab-body--sectioned settings-providers">
+        <LMStudioClusterSection directory={props.directory} />
+
         <div class="settings-section" data-component="connected-providers-section">
           <h3 class="settings-section-title">{language.t("settings.providers.section.connected")}</h3>
           <SettingsList variant="catalog">

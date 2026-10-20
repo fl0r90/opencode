@@ -43,6 +43,28 @@
 
 ---
 
+### 🚀 OpenCode Desktop GUI — LM Studio Multi-Server & Master ⇄ Agent Edition (`fl0r90/opencode`)
+
+This fork of **OpenCode Desktop** (`packages/desktop` & `packages/app` + `packages/core`) includes built-in support for **LM Studio Multi-Server Discovery** and **Master ⇄ Agent (Worker) Multi-Node Orchestration**:
+
+1. **Direct LM Studio Server Management (`Settings → Providers`)**:
+   - Add any number of local or LAN LM Studio servers by `IP:Port` (e.g. `192.168.0.25:1234`, `192.168.0.200:1234`, `127.0.0.1:1234`) or click **Scan LAN** to discover them automatically.
+   - Automatically probes `/api/v1/models`, `/api/v0/models`, and `/v1/models` to detect loaded models, allocated VRAM context window (`context_length` / `max_context_length`), tool-calling support (`trained_for_tool_use`), vision support, and ping latency.
+2. **Master ⇄ Agent (Worker) Dual-Server Orchestration**:
+   - When 2+ LM Studio servers are online, assign one server/model as **👑 Master (Primary Architect)** and the second server/model as **⚡ Agent / Worker (Subagent Executor)** (or click **Auto-Elect Best Master & Agent**).
+   - Automatically configures OpenCode's `build` primary agent and `worker` / `general` / `explore` subagents so both LM Studio machines execute tasks in parallel.
+
+#### Install Anywhere (Linux / macOS / Windows)
+
+- **One-Command Installer (Linux & macOS)**:
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/fl0r90/opencode/dev/install-desktop.sh | bash
+  ```
+- **Download Prebuilt Installers (`.deb`, `.AppImage`, `.dmg`, `.exe`)**:
+  Grab the latest release directly from [**GitHub Releases (`fl0r90/opencode/releases`)**](https://github.com/fl0r90/opencode/releases).
+
+---
+
 ### Installation
 
 ```bash

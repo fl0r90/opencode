@@ -131,7 +131,7 @@ async function prepareCli(dest: string) {
 
   if (process.platform !== "win32") await chmod(dest, 0o755)
 
-  if (process.platform === "win32" && process.env.GITHUB_ACTIONS === "true") {
+  if (process.platform === "win32" && process.env.GITHUB_ACTIONS === "true" && process.env.AZURE_TENANT_ID) {
     await $`pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ../../script/sign-windows.ps1 ${dest}`
   }
 

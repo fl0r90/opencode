@@ -350,6 +350,103 @@ describe("LMStudioPlugin", () => {
       ({ server }) => Effect.promise(() => server.stop(true)),
     ),
   )
+
+  it.live("discovers multiple LM Studio servers simultaneously (Master + Worker)", () =>
+    Effect.acquireUseRelease(
+      Effect.sync(() => ({
+        master: Bun.serve({
+          port: 0,
+          fetch: () =>
+            Response.json({
+              models: [
+                {
+                  type: "llm",
+                  key: "qwen/qwen3-coder-32b",
+                  display_name: "Qwen 3 Coder 32B (Master)",
+                  architecture: "qwen3",
+                  loaded_instances: [{ config: { context_length: 65_536 } }],
+                  max_context_length: 131_072,
+                  capabilities: { vision: false, trained_for_tool_use: true },
+                },
+              ],
+            }),
+        }),
+        worker: Bun.serve({
+          port: 0,
+          fetch: (req) => {
+            const url = new URL(req.url)
+            if (url.pathname === "/api/v1/models") return new Response("Not Found", { status: 404 })
+            return Response.json({
+              data: [
+                {
+                  id: "qwen2.5-coder-7b-instruct",
+                  type: "llm",
+                  arch: "qwen2",
+                  state: "loaded",
+                  loaded_context_length: 32_768,
+                  max_context_length: 32_768,
+                  capabilities: ["tool_use"],
+                },
+              ],
+            })
+          },
+        }),
+      })),
+      ({ master, worker }) =>
+        Effect.gen(function* () {
+          const bus = yield* Bus.Service
+          const providers = yield* Provider.Service
+          const modelState = yield* Model.Service
+          const config = yield* Config.Test
+          const masterID = Provider.ID.make("lmstudio")
+          const workerID = Provider.ID.make("lmstudio-worker")
+
+          yield* config.setEntries([
+            new Document({
+              type: "document",
+              info: decode({
+                providers: {
+                  lmstudio: {
+                    name: "LM Studio Master",
+                    settings: { baseURL: `${master.url.origin}/v1`, provider: "lmstudio" },
+                  },
+                  "lmstudio-worker": {
+                    name: "LM Studio Worker",
+                    settings: { baseURL: `${worker.url.origin}/v1`, provider: "lmstudio" },
+                  },
+                },
+              }),
+            }),
+          ])
+          yield* bus.publish(Event.Updated, {})
+          yield* addPlugin(master.url.origin)
+
+          const masterModel = yield* eventually(
+            modelState.get(masterID, Model.ID.make("qwen/qwen3-coder-32b")),
+            (model) => model !== undefined,
+          )
+          const workerModel = yield* eventually(
+            modelState.get(workerID, Model.ID.make("qwen2.5-coder-7b-instruct")),
+            (model) => model !== undefined,
+          )
+
+          expect(masterModel).toMatchObject({
+            name: "Qwen 3 Coder 32B (Master)",
+            limit: { context: 65_536 },
+            capabilities: { tools: true },
+          })
+          expect(workerModel).toMatchObject({
+            name: "qwen2.5-coder-7b-instruct",
+            limit: { context: 32_768 },
+            capabilities: { tools: true },
+          })
+          const availableIDs = (yield* providers.available()).map((p) => p.id)
+          expect(availableIDs).toContain(masterID)
+          expect(availableIDs).toContain(workerID)
+        }),
+      ({ master, worker }) => Effect.promise(() => Promise.all([master.stop(true), worker.stop(true)])),
+    ),
+  )
 })
 
 function configuration(baseURL: string, apiKey: string | null) {

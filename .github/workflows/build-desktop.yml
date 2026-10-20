@@ -1,0 +1,110 @@
+name: Build & Release OpenCode Desktop (LM Studio Cluster Edition)
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            cli_target: opencode-linux-x64-baseline
+            desktop_target: x86_64-unknown-linux-gnu
+            pkg_cmd: "package:linux"
+            extra_args: "--x64 --linux AppImage deb"
+          - os: macos-latest
+            platform: darwin-arm64
+            cli_target: opencode-darwin-arm64
+            desktop_target: aarch64-apple-darwin
+            pkg_cmd: "package:mac"
+            extra_args: "--arm64"
+          - os: windows-latest
+            platform: win32-x64
+            cli_target: opencode-windows-x64-baseline
+            desktop_target: x86_64-pc-windows-msvc
+            pkg_cmd: "package:win"
+            extra_args: "--x64"
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      OPENCODE_CHANNEL: prod
+      OPENCODE_CLI_TARGET: ${{ matrix.desktop_target }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+
+      - name: Install Linux packaging dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libfuse2
+
+      - name: Install workspace dependencies
+        run: bun install
+
+      - name: Build bundled OpenCode CLI (${{ matrix.cli_target }})
+        working-directory: packages/cli
+        run: bun run script/build.ts --target=${{ matrix.cli_target }}
+
+      - name: Build & Package Electron Desktop GUI
+        working-directory: packages/desktop
+        env:
+          OPENCODE_CLI_DIST: ${{ github.workspace }}/packages/cli/dist
+        run: |
+          bun run build
+          bunx electron-builder --config electron-builder.config.ts ${{ matrix.extra_args }} --publish never
+
+      - name: Upload Desktop Installers Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-desktop-${{ matrix.platform }}
+          path: |
+            packages/desktop/dist/*.AppImage
+            packages/desktop/dist/*.deb
+            packages/desktop/dist/*.dmg
+            packages/desktop/dist/*.zip
+            packages/desktop/dist/*.exe
+
+  release:
+    needs: build-desktop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest-build' }}
+          name: "OpenCode Desktop — LM Studio Multi-Server Edition (${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'Latest Build' }})"
+          body: |
+            ## OpenCode Desktop GUI — LM Studio Multi-Server & Master ⇄ Agent Edition
+            - **Direct LM Studio Server Discovery** from `Settings -> Providers` (by `IP:Port` or `Scan LAN`).
+            - **Auto-Detection** of loaded models, effective context window (`context_length` / `max_context_length`), tool use, and vision capabilities.
+            - **Multi-Server Master ⇄ Agent (Worker) Orchestration**: Use 2+ LM Studio servers simultaneously — one as **Master (Architect)** and the other as **Agent (Worker)**.
+          draft: false
+          prerelease: false
+          files: release-assets/*

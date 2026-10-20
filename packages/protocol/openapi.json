@@ -14322,6 +14322,33 @@
         },
         "additionalProperties": false
       },
+      "Config.ModelSelectionEncoded": {
+        "anyOf": [
+          {
+            "type": "string",
+            "pattern": "^[^/#]+\\/[^#]+(?:#[^#]+)?$"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "providerID": {
+                "type": "string",
+                "pattern": "^[^/#]+$"
+              },
+              "model": {
+                "type": "string",
+                "pattern": "^[^#]+$"
+              },
+              "variant": {
+                "type": "string",
+                "pattern": "^[^#]+$"
+              }
+            },
+            "required": ["providerID", "model"],
+            "additionalProperties": false
+          }
+        ]
+      },
       "Config.Patch": {
         "type": "object",
         "properties": {
@@ -14334,9 +14361,54 @@
                 "type": "null"
               }
             ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Config.ModelSelectionEncoded"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "default_agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "providers": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Config.ProviderEncoded"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "agents": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Config.AgentEncoded"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
           }
         },
-        "required": ["shell"],
         "additionalProperties": false
       },
       "Config.Plugin.EntryEncoded": {

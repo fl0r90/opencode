@@ -30,7 +30,7 @@ const metainfoFpm = (appId: string) =>
 async function signWindows(configuration: { path: string }) {
   if (process.platform !== "win32") return
 
-  if (process.env.GITHUB_ACTIONS !== "true") return
+  if (process.env.GITHUB_ACTIONS !== "true" || !process.env.AZURE_TENANT_ID) return
 
   await execFileAsync(
     "pwsh",
@@ -170,10 +170,11 @@ const getBase = (appId: string): Configuration => {
       entitlements: "resources/entitlements.plist",
       entitlementsInherit: "resources/entitlements.plist",
       sign: async (options) => {
+        if (!process.env.CSC_LINK && !process.env.CSC_NAME) return
         const { sign } = await import("app-builder-lib/out/codeSign/macCodeSign")
         await sign(macSignOptions(options))
       },
-      notarize: true,
+      notarize: Boolean(process.env.APPLE_ID),
       target: ["dmg", "zip"],
     },
     protocols: {

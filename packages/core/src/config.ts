@@ -387,13 +387,30 @@ export const layer = (options?: Options) =>
             (yield* Effect.filter(candidates, fs.isFile)).at(-1) ?? path.join(directory, "opencode.jsonc")
           const text = (yield* fs.readFileStringSafe(filepath)) ?? "{}\n"
           const updated = yield* Effect.try({
-            try: () =>
-              applyEdits(
-                text,
-                modify(text, ["shell"], patch.shell ?? undefined, {
-                  formattingOptions: { tabSize: 2, insertSpaces: true },
-                }),
-              ),
+            try: () => {
+              let current = text
+              const fmt = { formattingOptions: { tabSize: 2, insertSpaces: true } }
+              if ("shell" in patch && patch.shell !== undefined) {
+                current = applyEdits(current, modify(current, ["shell"], patch.shell ?? undefined, fmt))
+              }
+              if ("model" in patch && patch.model !== undefined) {
+                current = applyEdits(current, modify(current, ["model"], patch.model ?? undefined, fmt))
+              }
+              if ("default_agent" in patch && patch.default_agent !== undefined) {
+                current = applyEdits(current, modify(current, ["default_agent"], patch.default_agent ?? undefined, fmt))
+              }
+              if (patch.providers) {
+                for (const [id, value] of Object.entries(patch.providers)) {
+                  current = applyEdits(current, modify(current, ["providers", id], value ?? undefined, fmt))
+                }
+              }
+              if (patch.agents) {
+                for (const [id, value] of Object.entries(patch.agents)) {
+                  current = applyEdits(current, modify(current, ["agents", id], value ?? undefined, fmt))
+                }
+              }
+              return current
+            },
             catch: (cause) => new FSUtil.FileSystemError({ method: "config.update", cause }),
           })
           yield* fs.writeWithDirs(filepath, updated.endsWith("\n") ? updated : `${updated}\n`)
