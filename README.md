@@ -45,23 +45,108 @@
 
 ### 🚀 OpenCode Desktop GUI — LM Studio Multi-Server & Master ⇄ Agent Edition (`fl0r90/opencode`)
 
-This fork of **OpenCode Desktop** (`packages/desktop` & `packages/app` + `packages/core`) includes built-in support for **LM Studio Multi-Server Discovery** and **Master ⇄ Agent (Worker) Multi-Node Orchestration**:
+Această versiune a **OpenCode Desktop** (`packages/desktop` & `packages/app` + `packages/core`) vine pre-configurată cu suport nativ pentru **Cluster LM Studio Multi-Server** și **Orchestrare Multi-Node Master ⇄ Agent (Worker)**:
 
-1. **Direct LM Studio Server Management (`Settings → Providers`)**:
-   - Add any number of local or LAN LM Studio servers by `IP:Port` (e.g. `192.168.0.25:1234`, `192.168.0.200:1234`, `127.0.0.1:1234`) or click **Scan LAN** to discover them automatically.
-   - Automatically probes `/api/v1/models`, `/api/v0/models`, and `/v1/models` to detect loaded models, allocated VRAM context window (`context_length` / `max_context_length`), tool-calling support (`trained_for_tool_use`), vision support, and ping latency.
-2. **Master ⇄ Agent (Worker) Dual-Server Orchestration**:
-   - When 2+ LM Studio servers are online, assign one server/model as **👑 Master (Primary Architect)** and the second server/model as **⚡ Agent / Worker (Subagent Executor)** (or click **Auto-Elect Best Master & Agent**).
-   - Automatically configures OpenCode's `build` primary agent and `worker` / `general` / `explore` subagents so both LM Studio machines execute tasks in parallel.
+- **Adăugare directă de servere din GUI (`Settings → Providers`)**: Adaugă oricâte servere LM Studio după `IP:Port` (ex: `192.168.0.25:1234`, `192.168.0.200:1234`, `127.0.0.1:1234`) sau apasă **Scan LAN** pentru detecție automată în subnet.
+- **Auto-detecție automată a resurselor**: Citește în timp real modelele încărcate în VRAM (`LOADED`), contextul alocat efectiv (`context_length` / `max_context_length`), suportul pentru **Tools / Function Calling**, **Vision** și latența în milisecunde.
+- **Orchestrare Dual-Server Master ⇄ Worker**: Când ai 2+ servere LM Studio pe rețea, folosește un server ca **👑 Master (Arhitect Principal / Planificare)** și celălalt ca **⚡ Agent / Worker (Executant de Cod în Paralel via Subagent)**.
 
-#### Install Anywhere (Linux / macOS / Windows)
+---
 
-- **One-Command Installer (Linux & macOS)**:
+### 📦 Ghid Pas cu Pas de Instalare (Linux / macOS / Windows)
+
+#### Metoda 1: Instalare Automată cu o Singură Comandă (Linux & macOS) — *Recomandat*
+
+Deschide terminalul pe orice mașină și rulează:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fl0r90/opencode/dev/install-desktop.sh | bash
+```
+
+Ce face scriptul automat pentru tine:
+1. Verifică dacă există deja binare pre-compilate în [GitHub Releases](https://github.com/fl0r90/opencode/releases) și le instalează în câteva secunde.
+2. Dacă nu găsește binar gata compilat, își instalează `bun`, clonează repo-ul, compilează backend-ul CLI și Electron Desktop-ul.
+3. Instalează executabilul în `~/.local/bin/opencode-desktop` și creează iconița și lansatorul în meniul tău de aplicații (GNOME / KDE / macOS Applications).
+
+---
+
+#### Metoda 2: Descărcare Directă din GitHub Releases
+
+Mergi pe [**GitHub Releases (`fl0r90/opencode/releases`)**](https://github.com/fl0r90/opencode/releases) și descarcă pachetul pentru sistemul tău:
+
+- **Ubuntu / Debian**: descarcă `opencode-desktop-linux-amd64.deb` și instalează-l cu:
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/fl0r90/opencode/dev/install-desktop.sh | bash
+  sudo dpkg -i opencode-desktop-linux-amd64.deb
   ```
-- **Download Prebuilt Installers (`.deb`, `.AppImage`, `.dmg`, `.exe`)**:
-  Grab the latest release directly from [**GitHub Releases (`fl0r90/opencode/releases`)**](https://github.com/fl0r90/opencode/releases).
+- **Linux Generic (orice distribuție)**: descarcă `opencode-desktop-linux-x86_64.AppImage`:
+  ```bash
+  chmod +x opencode-desktop-linux-x86_64.AppImage
+  ./opencode-desktop-linux-x86_64.AppImage
+  ```
+- **macOS**: descarcă `opencode-desktop-mac-arm64.dmg` (Apple Silicon) sau `.zip`, deschide și trage aplicația în `/Applications`.
+- **Windows**: descarcă `opencode-desktop-win-x64.exe` și rulează installerul.
+
+---
+
+#### Metoda 3: Compilare Manuală Pas cu Pas din Codul Sursă
+
+Dacă vrei să îl compilezi manual pe mașina ta:
+
+1. **Instalează dependențele preliminare** (Git și Bun):
+   ```bash
+   curl -fsSL https://bun.sh/install | bash
+   export PATH="$HOME/.bun/bin:$PATH"
+   ```
+
+2. **Clonează repo-ul**:
+   ```bash
+   git clone -b dev https://github.com/fl0r90/opencode.git
+   cd opencode
+   ```
+
+3. **Instalează pachetele workspace-ului**:
+   ```bash
+   bun install
+   ```
+
+4. **Compilează binarul de CLI cu backend-ul personalizat**:
+   ```bash
+   cd packages/cli
+   # Pe Linux:
+   bun run script/build.ts --target=opencode-linux-x64-baseline
+   # Pe macOS (Apple Silicon):
+   # bun run script/build.ts --target=opencode-darwin-arm64
+   cd ../..
+   ```
+
+5. **Împachetează aplicația Desktop GUI**:
+   ```bash
+   cd packages/desktop
+   export OPENCODE_CHANNEL=prod
+   export OPENCODE_CLI_TARGET=x86_64-unknown-linux-gnu
+   export OPENCODE_CLI_DIST="$(pwd)/../cli/dist"
+   export CSC_IDENTITY_AUTO_DISCOVERY=false
+
+   bun run prebuild
+   bun run build
+   bunx electron-builder --config electron-builder.config.ts --linux deb AppImage --publish never
+   ```
+   Găsești pachetele gata în `packages/desktop/dist/`.
+
+---
+
+### 🛠️ Cum configurezi serverele LM Studio în interfață
+
+1. **Deschide aplicația**: din meniul de aplicații sau rulând `opencode-desktop`.
+2. **Mergi la Setări**: click pe rotița din stânga jos (**Settings**) → selectează **Providers**.
+3. **Adaugă serverele**:
+   - În panoul de sus **„LM Studio Multi-Server & Master ⇄ Agent Orchestrator”**, scrie IP-ul și portul (ex: `192.168.0.25:1234`) și apasă **Add & Discover Server** (sau apasă **Scan LAN**).
+   - Serverul va apărea cu bulină verde, latența în `ms` și lista completă de modele încărcate în VRAM.
+4. **Setează Master & Agent**:
+   - Apasă pe butonul **„Auto-Elect Best Master & Agent”** sau alege manual din meniurile dropdown:
+     - **👑 Master**: alege serverul și modelul principal de gândire/arhitectură.
+     - **⚡ Agent (Worker)**: alege al doilea server și modelul dedicat de execuție de cod.
+5. **Apasă Apply & Sync**: configurația este salvată instantaneu în OpenCode, iar când lucrezi la un proiect, ambele servere vor executa task-urile în paralel!
 
 ---
 
