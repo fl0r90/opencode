@@ -88,6 +88,24 @@ const table: Record<string, Factory> = {
   tools: () => new ToolReference([]),
   search: (ctx) =>
     native(ctx.builtins, { name: "search", call: (_, args) => ctx.tool(ctx.tools.search, args), callback: false }),
+  delegate: (ctx) =>
+    native(ctx.builtins, {
+      name: "delegate",
+      call: (_, args) => ctx.pending.create(ctx.tool((json) => ctx.tools.execute(["delegate"], json), args)),
+      callback: false,
+    }),
+  delegate_task: (ctx) =>
+    native(ctx.builtins, {
+      name: "delegate_task",
+      call: (_, args) => ctx.pending.create(ctx.tool((json) => ctx.tools.execute(["delegate_task"], json), args)),
+      callback: false,
+    }),
+  subagent: (ctx) =>
+    native(ctx.builtins, {
+      name: "subagent",
+      call: (_, args) => ctx.pending.create(ctx.tool((json) => ctx.tools.execute(["subagent"], json), args)),
+      callback: false,
+    }),
   undefined: () => undefined,
   NaN: () => NaN,
   Infinity: () => Infinity,

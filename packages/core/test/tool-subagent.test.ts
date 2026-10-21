@@ -824,4 +824,96 @@ describe("SubagentTool", () => {
       ),
     ),
   )
+
+  productionIt.live(
+    "allows delegate_task and delegate tool execution with task alias and direct snapshot exposure",
+    () =>
+      Effect.acquireRelease(
+        Effect.promise(() => tmpdir()),
+        (dir) => Effect.promise(() => dir[Symbol.asyncDispose]()),
+      ).pipe(
+        Effect.flatMap((dir) =>
+          Effect.gen(function* () {
+            const location = Location.Ref.make({ directory: AbsolutePath.make(dir.path) })
+            const sessions = yield* Session.Service
+            const parent = yield* sessions.create({ location })
+            yield* withSubagent(parent.location)
+            const locations = yield* LocationServiceMap.Service
+            const registry = yield* Tool.Service.pipe(Effect.provide(locations.get(parent.location)))
+
+            const snapshot = yield* registry.snapshot([])
+            const directToolNames = snapshot.definitions.map((def) => def.name)
+            expect(directToolNames).toContain("subagent")
+            expect(directToolNames).toContain("delegate_task")
+            expect(directToolNames).toContain("delegate")
+
+            const result = yield* executeTool(registry, {
+              sessionID: parent.id,
+              ...toolIdentity,
+              call: {
+                type: "tool-call",
+                id: "call-delegate-task",
+                name: "delegate_task",
+                input: { task: "implement feature on worker node", agent: "reviewer" },
+              },
+            })
+
+            const childID = outputSessionID(result.metadata)
+            expect(result.metadata).toEqual({ sessionID: childID, status: "completed" })
+            expect(result.content).toEqual([{ type: "text", text: completedOutput(childID) }])
+
+            const searchResult = yield* executeTool(registry, {
+              sessionID: parent.id,
+              ...toolIdentity,
+              call: {
+                type: "tool-call",
+                id: "call-codemode-search",
+                name: "execute",
+                input: {
+                  code: 'const res = await search({ query: "delegate" }); return res.items.map(i => i.path);',
+                },
+              },
+            })
+            const searchText = searchResult.content?.find(
+              (c): c is { readonly type: "text"; readonly text: string } => c.type === "text",
+            )?.text
+            expect(searchText).toContain("delegate")
+
+            const codeModeDelegateResult = yield* executeTool(registry, {
+              sessionID: parent.id,
+              ...toolIdentity,
+              call: {
+                type: "tool-call",
+                id: "call-codemode-delegate",
+                name: "execute",
+                input: {
+                  code: 'const res = await delegate_task({ task: "codemode delegate test", agent: "reviewer" }); return res;',
+                },
+              },
+            })
+            const codeModeDelegateText = codeModeDelegateResult.content?.find(
+              (c): c is { readonly type: "text"; readonly text: string } => c.type === "text",
+            )?.text
+            expect(codeModeDelegateText).toContain("completed")
+
+            const toolsDelegateResult = yield* executeTool(registry, {
+              sessionID: parent.id,
+              ...toolIdentity,
+              call: {
+                type: "tool-call",
+                id: "call-codemode-tools-delegate",
+                name: "execute",
+                input: {
+                  code: 'const res = await tools.delegate({ task: "tools dot delegate test", agent: "reviewer" }); return res;',
+                },
+              },
+            })
+            const toolsDelegateText = toolsDelegateResult.content?.find(
+              (c): c is { readonly type: "text"; readonly text: string } => c.type === "text",
+            )?.text
+            expect(toolsDelegateText).toContain("completed")
+          }),
+        ),
+      ),
+  )
 })

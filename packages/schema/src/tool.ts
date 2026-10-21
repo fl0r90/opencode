@@ -27,6 +27,7 @@ export interface Namespace {
 interface BaseOptions {
   readonly namespace?: string
   readonly permission?: string
+  readonly direct?: boolean
 }
 
 export type Options = BaseOptions &

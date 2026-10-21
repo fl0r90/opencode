@@ -509,8 +509,8 @@ export const LMStudioClusterSection: Component<{
       if (store.orchestrationEnabled && masterNode && masterModel && workerNode && workerModel) {
         const dualNodeNote =
           masterNode.id !== workerNode.id
-            ? `You are the MASTER Architect running on ${masterNode.name} (${masterModel.displayName}). You have a dedicated secondary WORKER LM Studio server on ${workerNode.name} (${workerModel.displayName}) available via the \`subagent\` tool (agents: "worker", "general", "explore"). Proactively delegate coding, file exploration, and parallelizable implementation tasks to the subagent so both LM Studio servers work in tandem.`
-            : `You are the MASTER Architect (${masterModel.displayName}). Delegate focused exploration and coding subtasks via the \`subagent\` tool to the worker agent (${workerModel.displayName}).`
+            ? `You are the MASTER Architect running on ${masterNode.name} (${masterModel.displayName}). You have a dedicated secondary WORKER LM Studio server on ${workerNode.name} (${workerModel.displayName}) available via delegation tools: \`delegate_task\`, \`delegate\`, or \`subagent\` (agents: "worker", "general", "explore"). Proactively delegate coding, file exploration, and parallelizable implementation tasks to the subagent/worker node so both LM Studio servers work in tandem.`
+            : `You are the MASTER Architect (${masterModel.displayName}). Delegate focused exploration and coding subtasks via the \`delegate_task\` or \`subagent\` tool to the worker agent (${workerModel.displayName}).`
 
         patchPayload.agents = {
           build: {
@@ -520,6 +520,7 @@ export const LMStudioClusterSection: Component<{
               model: masterModel.id,
             },
             description: `Master Architect (${masterNode.name} · ${masterModel.displayName})`,
+            system: `${dualNodeNote} You have full delegation capabilities via \`delegate_task\` and \`subagent\`. Always use \`delegate_task({ task: "...", agent: "worker" })\` or \`subagent\` when delegating tasks to the worker node. NEVER claim you do not have delegation tools or subagents available.`,
           },
           worker: {
             mode: "subagent",
@@ -528,7 +529,7 @@ export const LMStudioClusterSection: Component<{
               model: workerModel.id,
             },
             description: `Dedicated Worker Agent on ${workerNode.name} (${workerModel.displayName}) for code implementation and execution.`,
-            system: `You are the dedicated Worker Subagent running on ${workerNode.name}. Execute assigned coding, debugging, and analysis tasks accurately and concisely, then report results back to the Master agent.\n\n${dualNodeNote}`,
+            system: `You are the dedicated Worker Subagent running on ${workerNode.name}. Execute assigned coding, debugging, and analysis tasks accurately and concisely, then report results back to the Master agent.`,
           },
           general: {
             mode: "subagent",

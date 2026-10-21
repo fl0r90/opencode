@@ -231,7 +231,9 @@ const layer = Layer.effect(
             if (whollyDisabled(tool.options?.permission ?? name, rules)) continue
             active.set(name, tool)
           }
-          const direct = new Map(Array.from(active).filter(([, tool]) => tool.options?.codemode === false))
+          const direct = new Map(
+            Array.from(active).filter(([, tool]) => tool.options?.codemode === false || tool.options?.direct === true),
+          )
           const codeModeTools = new Map(Array.from(active).filter(([, tool]) => tool.options?.codemode !== false))
           const namespaces = data.namespaces
           const codeModeInventory = { tools: codeModeTools, namespaces }

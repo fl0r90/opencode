@@ -1,5 +1,5 @@
 import { define } from "@opencode/plugin/effect/plugin"
-import type { Document, Entry } from "@opencode/schema/config"
+import type { Entry } from "@opencode/schema/config"
 import { Duration, Effect, Option, Schedule, type Schema, Semaphore, Stream } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
 import { shellParserWasm } from "#shell-parser-wasm"

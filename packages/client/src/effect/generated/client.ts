@@ -1605,7 +1605,7 @@ const EndpointConfigUpdate = (raw: RawClient["server.config"]) => (input?: Confi
         default_agent: input?.["default_agent"],
         providers: input?.["providers"],
         agents: input?.["agents"],
-      },
+      } as any,
     }).pipe(Effect.mapError(mapClientError)),
   )
 
