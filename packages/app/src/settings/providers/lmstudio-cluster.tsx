@@ -520,7 +520,12 @@ export const LMStudioClusterSection: Component<{
               model: masterModel.id,
             },
             description: `Master Architect (${masterNode.name} · ${masterModel.displayName})`,
-            system: `${dualNodeNote} You have full delegation capabilities via \`delegate_task\` and \`subagent\`. Always use \`delegate_task({ task: "...", agent: "worker" })\` or \`subagent\` when delegating tasks to the worker node. NEVER claim you do not have delegation tools or subagents available.`,
+            permission: {
+              subagent: "allow",
+              delegate: "allow",
+              delegate_task: "allow",
+            },
+            system: `${dualNodeNote} You have full delegation capabilities via \`delegate_task\`, \`delegate\`, and \`subagent\`. When searching for tools in CodeMode, \`search({ query: 'delegate' })\` returns the delegation tools. You can also call them directly: \`await delegate_task({ task: "...", agent: "worker" })\`, \`await delegate({ task: "...", agent: "worker" })\`, or \`await tools.delegate({ task: "...", agent: "worker" })\`. Always use these delegation tools to delegate tasks to the worker node. NEVER claim you do not have delegation tools or subagents available.`,
           },
           worker: {
             mode: "subagent",
